@@ -1,0 +1,36 @@
+name: Lint-test
+
+on:
+  pull_request:
+    branches:
+      - staging
+
+jobs:
+  test-lint:
+    name: Test and Lint
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Make envfile
+        uses: SpicyPizza/create-envfile@v1.3
+        with:
+          envkey_POSTGRES_DB: ${{ secrets.POSTGRES_DB }}
+          envkey_POSTGRES_USER: ${{ secrets.POSTGRES_USER }}
+          envkey_POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+          envkey_POSTGRES_HOST: ${{ secrets.POSTGRES_HOST }}
+          envkey_POSTGRES_PORT: ${{ secrets.POSTGRES_PORT }}
+          envkey_POSTGRES_NAME: ${{ secrets.POSTGRES_NAME }}
+          envkey_SECRET_KEY: ${{ secrets.SECRET_KEY }}
+          envkey_debug: ${{ secrets.debug }}
+          envkey_ALLOWED_HOSTS: ${{ secrets.ALLOWED_HOSTS }}
+          envkey_EMAIL_HOST: ${{ secrets.EMAIL_HOST }}
+          envkey_EMAIL_PORT: ${{ secrets.EMAIL_PORT }}
+          envkey_EMAIL_HOST_USER: ${{ secrets.EMAIL_HOST_USER }}
+          envkey_EMAIL_HOST_PASSWORD: ${{ secrets.EMAIL_HOST_PASSWORD }}
+
+      - name: Lint
+        run: docker-compose -f docker-compose.local.yml run --rm web sh -c "make lint"
+
+      - name: Test
+        run: docker-compose -f docker-compose.local.yml run --rm web sh -c "pytest"

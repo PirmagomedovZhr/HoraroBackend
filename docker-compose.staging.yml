@@ -1,0 +1,62 @@
+version: '3'
+
+services:
+  front:
+    image: ivan556/horaro-frontend
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:3001:3000"
+    environment:
+      - WDS_SOCKET_HOST=0.0.0.0
+      - WDS_SOCKET_PORT=443
+      - REACT_APP_API_URL=https://api.horaro.net/api/v1/
+      - REACT_APP_NAME=Horaro
+    depends_on:
+      - web
+
+  web:
+    image: ivan556/horaro-backend
+    restart: unless-stopped
+    command: >
+      sh -c "python manage.py migrate &&
+             python manage.py runserver 0.0.0.0:8000" 
+    ports:
+      - "127.0.0.1:8001:8000"
+    depends_on:
+      - db
+    env_file:
+      - .env_web_db
+    volumes:
+      - ./HoraroBackend/media:/app/media/:ro
+
+  db:
+    image: postgres:14-alpine
+    restart: unless-stopped
+    volumes:
+       - staging_postgres_data:/var/lib/postgresql/data
+    env_file:
+      - .env_web_db
+
+  redis:
+    image: redis:7.0.5-alpine
+    restart: unless-stopped
+    hostname: redis
+
+    
+  worker:
+    image: ivan556/horaro-backend
+    restart: unless-stopped
+    hostname: worker
+    user: root
+    # entrypoint: celery
+    command: celery -A config.celery.app worker --beat --loglevel=warning
+    links:
+      - redis
+    depends_on:
+      - redis
+      - db
+    env_file:
+      - .env_web_db
+
+volumes:
+  staging_postgres_data:
